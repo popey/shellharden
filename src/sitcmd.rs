@@ -172,7 +172,7 @@ fn common_arg_cmd(
 	if a == b'#' {
 		return Some(Ok(WhatNow{
 			tri: Transition::Push(Box::new(SitUntilByte{
-				until: b'\n', color: 0x0320a040, end_replace: None
+				until: b'\n', color: COLOR_ITALIC | 0x20a040, end_replace: None
 			})),
 			pre: i, len: 1, alt: None
 		}));
@@ -221,7 +221,7 @@ fn common_arg_cmd(
 	} else if delimiter.len() > 0 {
 		return Some(Ok(WhatNow{
 			tri: Transition::Push(Box::new(
-				SitVec{terminator: delimiter, color: 0x00ff7733}
+				SitVec{terminator: delimiter, color: 0x00733900}
 			)),
 			pre: i, len: ate, alt: None
 		}));
