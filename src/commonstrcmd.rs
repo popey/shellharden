@@ -85,7 +85,7 @@ pub fn common_str_cmd(
 			};
 			let sit = Box::new(SitExtent{
 				len: 0,
-				color: 0x000000ff,
+				color: 0x0000aaff,
 				end_insert: None,
 			});
 			return CommonStrCmdResult::OnlyWithQuotes(WhatNow{
@@ -115,7 +115,7 @@ pub fn common_str_cmd(
 	} else if c == b'#' || c == b'?' {
 		let ext = Box::new(SitExtent{
 			len: 2,
-			color: 0x000000ff,
+			color: 0x0000aaff,
 			end_insert: None
 		});
 		return CommonStrCmdResult::Ok(WhatNow{
@@ -125,7 +125,7 @@ pub fn common_str_cmd(
 	} else if c == b'*' {
 		let ext = Box::new(SitExtent{
 			len: 0,
-			color: 0x000000ff,
+			color: 0x0000aaff,
 			end_insert: None
 		});
 		return CommonStrCmdResult::OnlyWithQuotes(WhatNow{
@@ -155,7 +155,7 @@ pub fn common_str_cmd(
 	} else if c == b'@' || (c >= b'0' && c <= b'9') {
 		let ext = Box::new(SitExtent{
 			len: 2,
-			color: 0x000000ff,
+			color: 0x0000aaff,
 			end_insert: None
 		});
 		return CommonStrCmdResult::OnlyWithQuotes(WhatNow{
@@ -199,7 +199,7 @@ pub fn common_str_cmd(
 		}
 		let wn = WhatNow{
 			tri: Transition::Push(Box::new(SitUntilByte{
-				until: b'}', color: 0x000000ff, end_replace: if_needed(rm_braces, b"")
+				until: b'}', color: 0x0000aaff, end_replace: if_needed(rm_braces, b"")
 			})), pre: i, len: 2, alt: if_needed(rm_braces, b"$")
 		};
 		return if is_number {

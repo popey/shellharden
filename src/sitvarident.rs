@@ -30,6 +30,6 @@ impl Situation for SitVarIdent {
 		})
 	}
 	fn get_color(&self) -> u32{
-		0x000000ff
+		0x0000aaff
 	}
 }
