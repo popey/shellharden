@@ -20,6 +20,7 @@ use ::commonstrcmd::common_str_cmd;
 
 use ::microparsers::predlen;
 use ::microparsers::is_whitespace;
+use ::microparsers::is_word;
 
 use ::sitextent::SitExtent;
 use ::sitstrdq::SitStrDq;
@@ -63,7 +64,7 @@ fn keyword_or_command(
 	i: usize,
 	is_horizon_lengthenable: bool,
 ) -> WhatNow {
-	let len = predlen(&|x| !is_whitespace(x), &horizon[i..]);
+	let len = predlen(&is_word, &horizon[i..]);
 	if i + len == horizon.len() && is_horizon_lengthenable {
 		return flush(i);
 	}
@@ -75,12 +76,14 @@ fn keyword_or_command(
 			)),
 			pre: i, len: len, alt: None
 		},
-		b"case" |
+		b"case" => WhatNow{
+			tri: Transition::Push(Box::new(SitCase{})),
+			pre: i, len: len, alt: None
+		},
 		b"do" |
 		b"done" |
 		b"elif" |
 		b"else" |
-		b"esac" |
 		b"fi" |
 		b"for" |
 		b"if" |
@@ -284,4 +287,37 @@ fn find_heredoc(horizon: &[u8]) -> (usize, Vec<u8>) {
 		ate += 1;
 	}
 	return (ate, found);
+}
+
+struct SitCase {}
+
+impl Situation for SitCase {
+	fn whatnow(&mut self, horizon: &[u8], is_horizon_lengthenable: bool) -> ParseResult {
+		let nop = ArgCmdData{end_trigger: 0x100, end_replace: None};
+		for i in 0 .. horizon.len() {
+			let len = predlen(&is_word, &horizon[i..]);
+			if len == 0 {
+				continue;
+			}
+			if i + len == horizon.len() && is_horizon_lengthenable {
+				return Ok(flush(i));
+			}
+			let word = &horizon[i..i+len];
+			match word {
+				b"esac" => {
+					return Ok(WhatNow{
+						tri: Transition::Pop, pre: i, len: len, alt: None
+					});
+				},
+				_ => {}
+			}
+			if let Some(res) = common_arg_cmd(&nop, horizon, i, is_horizon_lengthenable) {
+				return res;
+			}
+		}
+		Ok(flush(horizon.len()))
+	}
+	fn get_color(&self) -> u32 {
+		COLOR_BOLD | 0x808000
+	}
 }
