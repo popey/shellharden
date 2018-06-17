@@ -36,6 +36,12 @@ impl Situation for SitBeforeFirstArg {
 	fn whatnow(&mut self, horizon: &[u8], is_horizon_lengthenable: bool) -> ParseResult {
 		for i in 0 .. horizon.len() {
 			let a = horizon[i];
+			if a as u16 == self.arg_cmd_data.end_trigger {
+				return Ok(WhatNow{
+					tri: Transition::Pop, pre: i, len: 1,
+					alt: self.arg_cmd_data.end_replace
+				});
+			}
 			if is_whitespace(a) || a == b';' || a == b'|' || a == b'&' {
 				continue;
 			}
@@ -99,7 +105,7 @@ fn keyword_or_command(
 			})), pre: i, len: 0, alt: None
 		},
 		_ => WhatNow{
-			tri: Transition::Replace(Box::new(SitFirstArg{
+			tri: Transition::Push(Box::new(SitFirstArg{
 				arg_cmd_data: data.clone(),
 			})), pre: i, len: 0, alt: None
 		},
@@ -165,7 +171,7 @@ fn common_arg_cmd(
 	let a = horizon[i];
 	if a as u16 == data.end_trigger {
 		return Some(Ok(WhatNow{
-			tri: Transition::Pop, pre: i, len: 1,
+			tri: Transition::Pop, pre: i, len: 0,
 			alt: data.end_replace
 		}));
 	}
@@ -193,9 +199,7 @@ fn common_arg_cmd(
 	}
 	if a == b'\n' || a == b';' || a == b'|' || a == b'&' {
 		return Some(Ok(WhatNow{
-			tri: Transition::Replace(Box::new(SitBeforeFirstArg{
-				arg_cmd_data: data.clone(),
-			})), pre: i, len: 0, alt: None
+			tri: Transition::Pop, pre: i, len: 0, alt: None
 		}));
 	}
 	match common_str_cmd(&horizon, i, is_horizon_lengthenable, true) {
@@ -332,6 +336,12 @@ impl Situation for SitCase {
 		for i in 0 .. horizon.len() {
 			let len = predlen(&is_word, &horizon[i..]);
 			if len == 0 {
+				if horizon[i] == b')' {
+					return Ok(WhatNow{
+						tri: Transition::Push(Box::new(SitCaseArm{})),
+						pre: i, len: 1, alt: None
+					});
+				}
 				continue;
 			}
 			if i + len == horizon.len() && is_horizon_lengthenable {
@@ -354,5 +364,43 @@ impl Situation for SitCase {
 	}
 	fn get_color(&self) -> u32 {
 		0xffcc55
+	}
+}
+
+struct SitCaseArm {}
+
+impl Situation for SitCaseArm {
+	fn whatnow(&mut self, horizon: &[u8], is_horizon_lengthenable: bool) -> ParseResult {
+		for i in 0 .. horizon.len() {
+			let a = horizon[i];
+			if a == b';' {
+				if i + 1 < horizon.len() {
+					if horizon[i + 1] == b';' {
+						return Ok(WhatNow{
+							tri: Transition::Pop, pre: i, len: 0, alt: None
+						});
+					}
+				} else if i > 0 || is_horizon_lengthenable {
+					return Ok(flush(i));
+				}
+			}
+			if is_whitespace(a) || a == b';' || a == b'|' || a == b'&' {
+				continue;
+			}
+			if a == b'#' {
+				return Ok(WhatNow{
+					tri: Transition::Push(Box::new(SitUntilByte{
+						until: b'\n', color: COLOR_ITALIC | 0x20a040, end_replace: None
+					})),
+					pre: i, len: 1, alt: None
+				});
+			}
+			let nop = ArgCmdData{end_trigger: 0x100, end_replace: None};
+			return Ok(keyword_or_command(&nop, &horizon, i, is_horizon_lengthenable));
+		}
+		Ok(flush(horizon.len()))
+	}
+	fn get_color(&self) -> u32 {
+		COLOR_BOLD
 	}
 }
