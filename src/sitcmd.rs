@@ -77,13 +77,14 @@ fn keyword_or_command(
 			pre: i, len: len, alt: None
 		},
 		b"case" => WhatNow{
-			tri: Transition::Push(Box::new(SitCase{})),
+			tri: Transition::Push(Box::new(SitIn{})),
 			pre: i, len: len, alt: None
 		},
 		b"do" |
 		b"done" |
 		b"elif" |
 		b"else" |
+		b"esac" |
 		b"fi" |
 		b"for" |
 		b"if" |
@@ -289,6 +290,40 @@ fn find_heredoc(horizon: &[u8]) -> (usize, Vec<u8>) {
 	return (ate, found);
 }
 
+struct SitIn {}
+
+impl Situation for SitIn {
+	fn whatnow(&mut self, horizon: &[u8], is_horizon_lengthenable: bool) -> ParseResult {
+		let nop = ArgCmdData{end_trigger: 0x100, end_replace: None};
+		for i in 0 .. horizon.len() {
+			let len = predlen(&is_word, &horizon[i..]);
+			if len == 0 {
+				continue;
+			}
+			if i + len == horizon.len() && is_horizon_lengthenable {
+				return Ok(flush(i));
+			}
+			let word = &horizon[i..i+len];
+			match word {
+				b"in" => {
+					return Ok(WhatNow{
+						tri: Transition::Replace(Box::new(SitCase{})),
+						pre: i, len: len, alt: None
+					});
+				},
+				_ => {}
+			}
+			if let Some(res) = common_arg_cmd(&nop, horizon, i, is_horizon_lengthenable) {
+				return res;
+			}
+		}
+		Ok(flush(horizon.len()))
+	}
+	fn get_color(&self) -> u32 {
+		COLOR_BOLD | 0x800080
+	}
+}
+
 struct SitCase {}
 
 impl Situation for SitCase {
@@ -306,7 +341,7 @@ impl Situation for SitCase {
 			match word {
 				b"esac" => {
 					return Ok(WhatNow{
-						tri: Transition::Pop, pre: i, len: len, alt: None
+						tri: Transition::Pop, pre: i, len: 0, alt: None
 					});
 				},
 				_ => {}
@@ -318,6 +353,6 @@ impl Situation for SitCase {
 		Ok(flush(horizon.len()))
 	}
 	fn get_color(&self) -> u32 {
-		COLOR_BOLD | 0x808000
+		0xffcc55
 	}
 }
