@@ -220,7 +220,7 @@ fn common_arg_cmd(
 	} else if delimiter.len() > 0 {
 		return Some(Ok(WhatNow{
 			tri: Transition::Push(Box::new(
-				SitVec{terminator: delimiter, color: 0x0077ff00}
+				SitVec{terminator: delimiter, color: 0x00ff7733}
 			)),
 			pre: i, len: ate, alt: None
 		}));
